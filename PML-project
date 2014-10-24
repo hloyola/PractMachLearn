@@ -1,0 +1,81 @@
+setwd("c:/coursera/PML/project")
+
+##Training data
+# All variables with missing were excluded as well variables
+# that summary of others. All these done on MS Excel, and saving
+#as "pml-training1.csv". The same was done with the testing dataset
+
+training <- read.csv("pml-training1.csv",header=T,sep=",")
+testing <- read.csv("pml-testing1.csv",header=T,sep=",")
+
+
+##Preprossesing
+
+##Looking for near zero variance variables
+
+library(caret)
+
+nearzerovar <- nearZeroVar(training,saveMetrics=T)
+nearzerovar #there is no near zero variance predictors
+
+##Looking for level of correlations between predictors
+
+cor1 <- cor(training[,-53])
+
+
+##searching for high correlations
+
+highcor <- findCorrelation(cor1,cutoff=0.75,verbose=F)
+length(highcor)
+#[1] 20
+highcor #suggested columns to be removed
+
+filtdata <- training[,-highcor] # filtered training data
+
+
+###Ajusting a model with tunning parameters included.
+## I decide to include the pca preprocess method because all measurement
+#that remains on the dataset are correlated in some degree.
+
+#The train method I decided to use was QDA because
+#have an Accuracy of 71.6% with low accuracy sd.
+
+ctrl <- trainControl(method = "repeatedcv",repeats = 10,
+		classProbs =T)
+
+
+set.seed(34523)
+modelFit2 <- train(classe~., method='qda',
+	preProcess = c('scale', 'center','pca'),
+	trControl=ctrl,
+	data=filtdata)
+modelFit2
+
+##Prediction
+pred <- predict(modelFit2,newdata=testing[,-53],type = "prob")
+pred
+
+#        A            B            C            D            E
+#
+#1  1.800965e-01 4.692274e-02 7.724276e-01 2.672226e-08 5.530931e-04
+#2  4.834860e-01 6.308218e-03 5.099853e-01 6.012433e-08 2.203790e-04
+#3  6.774819e-01 2.616983e-02 2.962106e-01 2.424806e-08 1.376007e-04
+#4  9.756726e-01 2.473099e-04 2.406770e-02 5.037763e-06 7.317942e-06
+#5  8.816990e-01 9.546986e-02 1.708722e-02 2.977706e-04 5.446110e-03
+#6  3.305298e-03 5.144000e-01 2.169951e-01 1.048830e-04 2.651948e-01
+#7  1.625709e-03 2.004890e-03 2.586480e-01 7.351152e-01 2.606225e-03
+#8  1.322485e-04 9.909813e-01 5.819798e-10 1.127419e-04 8.773680e-03
+#9  1.000000e+00 1.612863e-14 1.254974e-29 2.598227e-48 4.576844e-25
+#10 9.999980e-01 1.228326e-06 7.914924e-07 9.637430e-18 4.217497e-13
+#11 7.379893e-01 2.579406e-01 3.890179e-07 2.357937e-04 3.833950e-03
+#12 1.657146e-03 1.769414e-02 9.774135e-01 3.130520e-06 3.232131e-03
+#13 5.518440e-10 9.703423e-01 8.687319e-11 2.645557e-03 2.701212e-02
+#14 9.998918e-01 9.439077e-06 9.864730e-05 1.544280e-13 1.438032e-07
+#15 6.233826e-12 6.391848e-06 1.849958e-12 2.674266e-02 9.732510e-01
+#16 4.136751e-10 2.133202e-02 1.529301e-16 1.481260e-07 9.786678e-01
+#17 4.521286e-01 2.141214e-02 5.249312e-01 7.205773e-11 1.528085e-03
+#18 7.291460e-14 9.872620e-01 2.365871e-27 1.272856e-14 1.273798e-02
+#19 3.655176e-03 3.497900e-01 2.492616e-09 1.325407e-09 6.465548e-01
+#20 1.523889e-21 9.999916e-01 1.050772e-13 2.514256e-09 8.368006e-06
+
+
